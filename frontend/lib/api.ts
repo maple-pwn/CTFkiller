@@ -34,11 +34,15 @@ export const api = {
     return res.json();
   },
 
-  async sendMessage(sessionId: string, content: string): Promise<{ success: boolean; response: string; violations?: string[] }> {
+  async sendMessage(
+    sessionId: string,
+    content: string,
+    agentType: 'default' | 'ctf_reverse' = 'default'
+  ): Promise<{ success: boolean; response: string; violations?: string[] }> {
     const res = await fetch(`${API_BASE_URL}/api/sessions/${sessionId}/messages`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ content }),
+      body: JSON.stringify({ content, agent_type: agentType }),
     });
     if (!res.ok) throw new Error('Failed to send message');
     return res.json();
