@@ -177,8 +177,9 @@ MCP 用于把外部服务接入 Claude Code（例如浏览器、第三方 API、
 
 添加步骤：
 
-1. 在 `backend/agent/llm_client.py` 扩展 prompt 分支
-   - 在 `_build_system_prompt(agent_type)` 中新增分支（如 `ctf_crypto`）
+1. 在 `backend/agent/prompts/` 新增 prompt 文件
+   - 命名约定：`<agent_type>.txt`（例如 `ctf_crypto.txt`）
+   - 当前默认回退文件：`default.txt`
 2. 在 `backend/api/sessions.py` 放行该 `agent_type`
    - `SendMessageRequest` 已有 `agent_type` 字段，可直接传新值
 3. 在前端加可选项
@@ -189,12 +190,12 @@ MCP 用于把外部服务接入 Claude Code（例如浏览器、第三方 API、
 最小示例（新增 `ctf_crypto`）：
 
 ```python
-# backend/agent/llm_client.py
-if agent_type == "ctf_crypto":
-    return base_prompt + """
+# backend/agent/prompts/ctf_crypto.txt
+You are an AI agent that generates execution plans.
+Given a user request, output JSON plan steps.
+
 Specialization: crypto CTF tasks.
 Prefer structured hypothesis -> verify -> decode workflow.
-"""
 ```
 
 前端透传示例：
