@@ -164,18 +164,82 @@ MCP 用于把外部服务接入 Claude Code（例如浏览器、第三方 API、
 
 ---
 
-## 7) Skills / MCP / Tools 的区别
+## 7) 如何添加更多 Agent
+
+这里的 Agent 分两类：
+
+- **运行时 Agent（本项目后端）**：影响 `POST /api/sessions/{id}/messages` 的执行策略
+- **开发时子代理（Claude Code）**：用于研发协作，不会直接成为后端运行时 agent
+
+### 7.1 添加运行时 Agent（推荐先做）
+
+当前已支持：`default`、`ctf_reverse`。
+
+添加步骤：
+
+1. 在 `backend/agent/llm_client.py` 扩展 prompt 分支
+   - 在 `_build_system_prompt(agent_type)` 中新增分支（如 `ctf_crypto`）
+2. 在 `backend/api/sessions.py` 放行该 `agent_type`
+   - `SendMessageRequest` 已有 `agent_type` 字段，可直接传新值
+3. 在前端加可选项
+   - `frontend/src/components/chat/ChatInterface.tsx` 的 `<select>` 增加 `<option value="ctf_crypto">ctf_crypto</option>`
+4. 若新 Agent 需要新工具/命令
+   - 同步修改 `backend/policy/rules.py` 与 `backend/tools/gateway.py`
+
+最小示例（新增 `ctf_crypto`）：
+
+```python
+# backend/agent/llm_client.py
+if agent_type == "ctf_crypto":
+    return base_prompt + """
+Specialization: crypto CTF tasks.
+Prefer structured hypothesis -> verify -> decode workflow.
+"""
+```
+
+前端透传示例：
+
+```ts
+body: JSON.stringify({ content, agent_type: "ctf_crypto" })
+```
+
+### 7.2 添加 Claude Code 子代理（开发流程）
+
+用途：把探索/评审/文档等研发任务拆给专用子代理。
+
+最小调用示例：
+
+```ts
+task(
+  subagent_type="explore",
+  load_skills=[],
+  run_in_background=true,
+  description="Find reverse patterns",
+  prompt="Search backend/agent and backend/tools for reverse workflow conventions"
+)
+```
+
+说明：
+
+- 这类子代理服务于开发过程，不会自动注册为后端运行时 `agent_type`
+- 若要“落地到产品”，仍需按 **7.1** 修改后端与前端
+
+---
+
+## 8) Skills / MCP / Tools / Agent 的区别
 
 - **Tools（本项目后端）**：Agent 在你的服务里真正执行的能力
 - **Skills（Claude 侧）**：工作流/策略模板，用于指导如何做事
 - **MCP（Claude 侧）**：外部系统连接层，让 Claude 能调用外部工具
+- **Agent（本项目后端）**：同一套工具下的策略角色（决定“先做什么、如何拆步骤”）
 
 一句话：
 
 - Tool = 执行能力
 - Skill = 执行方法
 - MCP = 执行通道
+- Agent = 执行角色
 
-## 8) License
+## 9) License
 
 MIT
