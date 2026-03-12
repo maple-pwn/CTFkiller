@@ -1,0 +1,9 @@
+fastapi
+uvicorn[standard]
+pydantic>=2.0.0
+openai>=1.0.0
+tenacity
+sqlalchemy
+docker
+jsonschema
+psycopg2-binary
