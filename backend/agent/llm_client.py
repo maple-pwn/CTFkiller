@@ -1,5 +1,7 @@
 import os
 import json
+import re
+from pathlib import Path
 from typing import Dict, Any, List, Optional
 from openai import OpenAI
 
@@ -9,6 +11,7 @@ class LLMClient:
         api_key = os.getenv("OPENAI_API_KEY")
         self.client = OpenAI(api_key=api_key) if api_key else None
         self.model = os.getenv("LLM_MODEL", "gpt-4")
+        self.prompts_dir = Path(__file__).resolve().parent / "prompts"
 
     def generate_plan(
         self,
@@ -49,7 +52,16 @@ class LLMClient:
             return {"steps": []}
 
     def _build_system_prompt(self, agent_type: str) -> str:
-        base_prompt = """You are an AI agent that generates execution plans.
+        safe_agent_type = self._normalize_agent_type(agent_type)
+        candidate = self.prompts_dir / f"{safe_agent_type}.txt"
+        default_prompt = self.prompts_dir / "default.txt"
+
+        if candidate.exists():
+            return candidate.read_text(encoding="utf-8")
+        if default_prompt.exists():
+            return default_prompt.read_text(encoding="utf-8")
+
+        return """You are an AI agent that generates execution plans.
 Given a user request, output a JSON plan with this structure:
 {
   "steps": [
@@ -60,15 +72,8 @@ Given a user request, output a JSON plan with this structure:
 Available tools: list_dir, read_file, write_file, search_text, run_shell_safe, get_file_info
 """
 
-        if agent_type == "ctf_reverse":
-            return (
-                base_prompt
-                + """
-Specialization: reverse engineering CTF tasks.
-Prioritize static analysis workflow and produce concise, safe steps.
-Prefer tool sequence: get_file_info -> read_file/search_text -> run_shell_safe.
-Keep commands to safe, whitelisted utilities only.
-"""
-            )
-
-        return base_prompt
+    def _normalize_agent_type(self, agent_type: str) -> str:
+        candidate = (agent_type or "default").strip().lower()
+        if not re.fullmatch(r"[a-z0-9_-]+", candidate):
+            return "default"
+        return candidate
