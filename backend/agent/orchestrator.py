@@ -19,7 +19,9 @@ class AgentOrchestrator:
         self.policy_engine = PolicyEngine()
         self.tool_gateway = ToolGateway()
 
-    def process_request(self, session_id: str, user_message: str) -> Dict[str, Any]:
+    def process_request(
+        self, session_id: str, user_message: str, agent_type: str = "default"
+    ) -> Dict[str, Any]:
         db = next(get_db())
         try:
             db.add(
@@ -40,7 +42,7 @@ class AgentOrchestrator:
                 for msg in messages[-10:]
             ]
 
-            plan = self.llm_client.generate_plan(user_message, context)
+            plan = self.llm_client.generate_plan(user_message, context, agent_type)
 
             valid, violations = self.policy_engine.validate_execution_plan(
                 plan, session_id

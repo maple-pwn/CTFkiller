@@ -33,6 +33,7 @@ class CreateSessionResponse(BaseModel):
 
 class SendMessageRequest(BaseModel):
     content: str
+    agent_type: Optional[str] = "default"
 
 
 class SendMessageResponse(BaseModel):
@@ -66,7 +67,9 @@ def send_message(
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
 
-    result = orchestrator.process_request(session_id, request.content)
+    result = orchestrator.process_request(
+        session_id, request.content, request.agent_type or "default"
+    )
 
     return SendMessageResponse(
         success=result["success"],
